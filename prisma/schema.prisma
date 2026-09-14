@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  email    String   @unique
+  senha    String   @unique
+  cuidadorId Int?
+  cuidador User?   @relation("UserCuidador", fields: [cuidadorId], references: [id])
+  cuidadores User[] @relation("UserCuidador")
+  medicamentos medicamento[]
+  historicos historico[]
+}
+
+model medicamento {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  frequencia  Int
+  dosagem     Int
+  unidadeDosagem String
+  quantidade  Int
+  unidadeQuantidade String
+  dataInicio  DateTime
+  dataFim     DateTime
+  status      Status @default(ativo)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  historicos  historico[]
+}
+
+enum Status {
+  ativo
+  inativo
+  sob_demanda
+}
+
+model historico {
+  id          Int      @id @default(autoincrement())
+  data        DateTime @default(now())
+  medicamentoId Int
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  medicamento medicamento @relation(fields: [medicamentoId], references: [id])
+}
