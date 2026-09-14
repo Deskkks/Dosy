@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsx src/index.ts --watch",
     "dev": "nodemon --watch src --ext ts --exec tsx src/index.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build": "prisma generate"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
