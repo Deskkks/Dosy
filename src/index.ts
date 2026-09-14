@@ -11,3 +11,5 @@ app.use("/api", api)
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+export default app

@@ -9,16 +9,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsx src/index.ts --watch",
-    "dev": "nodemon --watch src --ext ts --exec tsx src/index.ts"
+    "dev": "nodemon --watch src --ext ts --exec tsx src/index.ts",
+    "postinstall": "prisma generate"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
     "nodemon": "^3.1.14",
-    "prisma": "^7.10.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "prisma": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@types/express": "^5.0.6",
