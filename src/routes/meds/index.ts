@@ -1,26 +1,7 @@
 import express from "express";
-import { prisma } from "../prisma.js";
+import { prisma } from "../../prisma.js";
 
 const router = express.Router();
-
-// Post criar medicamento
-
-router.post("/", async (req, res) => {
-  const newMeds = await prisma.medicamento.create({
-    data: req.body,
-  });
-  res.status(201).json(newMeds);
-});
-
-// Post editar medicamento
-
-router.post("/edit", async (req, res) => {
-  const updatedMeds = await prisma.medicamento.update({
-    where: { id: Number(req.body.id) },
-    data: req.body.data,
-  });
-  res.status(200).json(updatedMeds);
-});
 
 // Get todos os medicamentos por usuario
 
@@ -60,6 +41,25 @@ router.get("/:id", async (req, res) => {
   res.json(medsRes);
 });
 
+// Post criar medicamento
+
+router.post("/", async (req, res) => {
+  const newMeds = await prisma.medicamento.create({
+    data: req.body,
+  });
+  res.status(201).json(newMeds);
+});
+
+// Post editar medicamento
+
+router.post("/edit", async (req, res) => {
+  const updatedMeds = await prisma.medicamento.update({
+    where: { id: Number(req.body.id) },
+    data: req.body.data,
+  });
+  res.status(200).json(updatedMeds);
+});
+
 // Delete medicamento
 
 router.delete("/:id", async (req, res) => {
@@ -67,13 +67,6 @@ router.delete("/:id", async (req, res) => {
     where: { id: Number(req.params.id) },
   });
   res.status(200).json(deletedMeds);
-});
-
-// get todos os medicamentos
-
-router.get("/", async (req, res) => {
-  const meds = await prisma.medicamento.findMany();
-  res.json(meds);
 });
 
 export default router;

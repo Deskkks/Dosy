@@ -1,120 +1,12 @@
 import express from "express";
-import { prisma } from "../prisma.js";
+import { prisma } from "../../prisma.js";
+import defStatus from "../../utils/defstatus.js"
 
 const router = express.Router();
 
-function padData(data: any){
-	if(data instanceof Date){
-		let hora = data.getHours() < 10 ? "0" + data.getHours() : data.getHours()
-		let minutos = data.getMinutes() < 10 ? "0" + data.getMinutes() : data.getMinutes()
-		return hora + ":" + minutos
-	}
-	return data
-}
-
-function desStatus(med:any, dataInicio: Date, dataFim: Date){
-	var horarios = new Array
-	var dataAtual = new Date(dataInicio)
-	
-	while(dataAtual <= dataFim){
-		for (let i = 0; 24 > med.frequencia * i; i++) {
-			let status
-			var horarioTomado
-			var diferenca: number
-			var dose = new Date(dataAtual)
-			dose = new Date(dose.setHours(med.dataInicio.getHours() + (i * med.frequencia), med.dataInicio.getMinutes()))
-	
-			let dataTomado = med.historicos.find((historico: any) => {
-				diferenca = historico.data.getTime() - dose.getTime()
-				return (diferenca >= 0 && diferenca <= med.frequencia*60*60*1000)
-			})
-			
-			horarioTomado = dataTomado ? dataTomado.data : null
-			
-			if(horarioTomado != null){
-				if(horarioTomado.getTime() - dose.getTime() > 10*60*1000){
-					status = "atrasado"
-				}else {
-					status = "tomado"
-				}
-			} else {
-				if (new Date().getTime() > dose.getTime()) {
-					status = "não tomado";
-				} else {
-					status = "pendente";
-				}
-			}
-			horarios.push({
-				horario: padData(dose),
-				tomado: padData(horarioTomado),
-				status: status
-			})
-		}
-		dataAtual.setDate(dataAtual.getDate()+1)
-	}
-	return horarios
-}
-
-// Post criar histórico de medicação
-
-router.post("/", async (req, res) => {
-	const newHistory = await prisma.historico.create({
-		data: req.body.data,
-	});
-	res.status(201).json(newHistory);
-});
-
-// Get hoje
-
-router.get("/", async (req, res) => {
-
-	const dataInicio = new Date(new Date().setHours(0, 0, 0, 0))
-	const dataFim = new Date(new Date().setHours(23, 59, 59, 999))
-
-	const meds = await prisma.medicamento.findMany({
-		where: {
-			userId: Number(req.query.id)
-		},
-		select: {
-			nome: true,
-			dosagem: true,
-			unidadeDosagem: true,
-			dataInicio: true,
-			frequencia: true,
-			id: true,
-			historicos: {
-				where: {
-					data: {
-						gte: dataInicio,
-						lt: dataFim,
-					}
-				},
-				select: {
-					data: true
-				}
-			}
-		}
-	})
-
-	const medsRes = meds.map((med: any) => {
-	
-		let doses = []
-		
-		doses.push(desStatus(med, dataInicio, dataFim))
-		return {
-			nome: med.nome,
-			dosagem: String(med.dosagem) + " " + med.unidadeDosagem,
-			doses: doses
-		}
-	});
-
-	res.json(medsRes);
-});
-
-
 // Get Dashboard
 
-router.get("/dashboard", async (req, res) => {
+router.get("/", async (req, res) => {
 	const hoje = new Date()
 	const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth()-1, hoje.getDate(),0)
 	const dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(),23,59,59,999)
@@ -150,7 +42,7 @@ router.get("/dashboard", async (req, res) => {
 
 		var status
 
-		status = desStatus(med, dataInicio, dataFim)
+		status = defStatus(med, dataInicio, dataFim)
 
 		dash.push(status)
 
@@ -213,7 +105,7 @@ router.get("/dashboard", async (req, res) => {
 			let proximoDia = new Date(hoje.getFullYear(), hoje.getMonth(), dataAtual.getDate() + 1,23,59,59,999)
 			var status
 
-			status = desStatus(medUltSem, dataAtual, proximoDia)
+			status = defStatus(medUltSem, dataAtual, proximoDia)
 			statusEsq.push(status)
 
 			var dosesEsp = status.filter((dash) => dash.status != "pendente").length

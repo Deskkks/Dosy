@@ -1,7 +1,7 @@
 import express from "express";
-import meds from "./meds.js";
-import users from "./users.js";
-import history from "./history.js";
+import meds from "./meds/index.js";
+import users from "./users/index.js";
+import history from "./history/index.js";
 
 const router = express.Router();
 

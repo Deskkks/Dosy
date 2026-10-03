@@ -8,8 +8,10 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use("/api", api)
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}
 
 export default app

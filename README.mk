@@ -61,8 +61,6 @@ Altera informações de um medicamento que já existe.
 
 Recebe informações dos medicamentos de um usuário.
 
-> **Observação:** esse endpoint foi criado inicialmente de forma automática e pode não ser necessário para o aplicativo. O endpoint `/api/historys` possui uma funcionalidade mais adequada para obter as doses do dia.
-
 #### Exemplo de URL
 
 ```text
@@ -184,11 +182,9 @@ Cria um novo histórico de medicamento.
 }
 ```
 
-> **Observação:** o campo `data` é opcional.
-
 ---
 
-### `GET /api/historys`
+### `GET /api/historys/doseDia`
 
 Recebe as doses do dia de um usuário.
 
@@ -224,8 +220,6 @@ O campo `status` pode assumir os seguintes valores:
 * `atrasado`
 * `não tomado`
 * `pendente`
-
-> **Observação:** esse endpoint deve ser utilizado para obter as doses do dia. O endpoint `GET /api/meds/:userId` pode conter erros ou não ser necessário para o aplicativo.
 
 ---
 
