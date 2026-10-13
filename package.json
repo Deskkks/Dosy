@@ -18,14 +18,15 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "prisma": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@types/express": "^5.0.6",
     "body-parser": "^2.3.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "firebase-admin": "^14.5.0",
+    "node-cron": "^4.6.0",
+    "prisma": "^7.10.0",
     "ts-node": "^10.9.2"
   }
 }
- 

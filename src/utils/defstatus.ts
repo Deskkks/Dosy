@@ -1,6 +1,6 @@
 import padData from "./padData.js"
 
-export default function desStatus(med:any, dataInicio: Date, dataFim: Date){
+export default function defStatus(med:any, dataInicio: Date, dataFim: Date){
 	var horarios = new Array
 	var dataAtual = new Date(dataInicio)
 	
@@ -20,13 +20,16 @@ export default function desStatus(med:any, dataInicio: Date, dataFim: Date){
 			horarioTomado = dataTomado ? dataTomado.data : null
 			
 			if(horarioTomado != null){
+				// Se houver registro de dose tomada, verifica se foi tomada no horário correto
 				if(horarioTomado.getTime() - dose.getTime() > 10*60*1000){
+					// Se a diferença entre o horário tomado e o horário da dose for maior que 10 minutos, considera-se atrasado
 					status = "atrasado"
 				}else {
 					status = "tomado"
 				}
 			} else {
 				if (new Date().getTime() > dose.getTime()) {
+					// Se o horário atual for maior que o horário da dose e não houver registro de dose tomada, considera-se não tomado
 					status = "não tomado";
 				} else {
 					status = "pendente";

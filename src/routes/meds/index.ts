@@ -45,7 +45,7 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const newMeds = await prisma.medicamento.create({
-    data: req.body,
+    data: req.body
   });
   res.status(201).json(newMeds);
 });

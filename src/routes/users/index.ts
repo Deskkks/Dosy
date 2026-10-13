@@ -42,7 +42,7 @@ router.post("/cuid", async (req, res) => {
     }
   })
   if(cuidador){
-    const user = await prisma.user.update({
+    await prisma.user.update({
       where: { id: req.body.userId },
       data: { cuidadorId : cuidador.id}
     })
