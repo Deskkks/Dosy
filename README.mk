@@ -19,6 +19,8 @@ Endpoint `POST /api/users/requestCuidador`
 
 **Observações:** o `userId` e o `nome` são o id e o nome do paciente que está solicitando o cuidador. o `email` é o email do cuidador que está sendo solicitado.
 
+É enviado ao cuidador o `userId` para que o aplicativo guarde localmente e utilize-o para fazer requisições futuras.
+
 ---
 
 3-O cuidador pode aceitar ou recusar a solicitação do paciente.
