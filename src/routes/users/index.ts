@@ -1,5 +1,6 @@
 import express from "express";
 import { prisma } from "../../prisma.js";
+import { getMessaging } from "firebase-admin/messaging";
 
 const router = express.Router();
 
@@ -33,23 +34,45 @@ router.post("/login", async (req, res) => {
 
 //Post Adicionar Cuidador
 
-router.post("/cuid", async (req, res) => {
+router.post("/requestCuidador", async (req, res) => {
 
   const cuidador = await prisma.user.findUnique({
     where: {
-      email: req.body.email,
-      nome: req.body.nome
+      email: req.body.email
     }
   })
-  if(cuidador){
-    await prisma.user.update({
-      where: { id: req.body.userId },
-      data: { cuidadorId : cuidador.id}
+
+  if(cuidador?.TokenFCM){
+    const message = {
+      token: cuidador.TokenFCM,
+      notification: {
+        title: "Você tem um novo paciente",
+        body: "O paciente " + req.body.nome + " deseja que você seja seu cuidador. Acesse o aplicativo para aceitar ou recusar."
+      },
+      data: {
+        pacientId: req.body.userId,
+      }
+    };
+
+    getMessaging().send(message)
+    .then((response) => {
+      console.log("Mensagem enviada com sucesso:", response);
     })
-    res.status(200)
-  }else{
-    res.status(404).json({message: "usuario do cuidador não existe"})
+    .catch((error) => {
+      console.log("Erro ao enviar mensagem:", error);
+    });
   }
+
+})
+
+router.post("/accept", async (req, res) => {
+
+    await prisma.user.update({
+      where: { id: req.body.pacientId },
+      data: { cuidadorId : req.body.cuidadorId }
+    })
+    res.status(200).json({message: "Cuidador aceito com sucesso"})
+
 })
 
 export default router;

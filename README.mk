@@ -1,3 +1,41 @@
+# Novidades
+
+## Notificações
+
+1-O back-end verifica a cada 5 minutos se algum medicamento de algum paciente está atrasado. Caso esteja, o cuidador do paciente recebe uma notificação push no celular.
+
+2-Quando um paciente solicita um novo cuidador, o cuidador recebe uma notificação push no celular informando que ele tem um novo paciente.
+Essa notificação é enviada pelo:
+Endpoint `POST /api/users/requestCuidador`
+
+#### Exemplo de requisição
+
+```json
+{
+  "userId": 1,
+  "nome": "Kayky Almeida de Souza",
+  "email": "kayky@email.com"
+}
+
+**Observações:** o `userId` e o `nome` são o id e o nome do paciente que está solicitando o cuidador. o `email` é o email do cuidador que está sendo solicitado.
+
+---
+
+3-O cuidador pode aceitar ou recusar a solicitação do paciente.
+
+O endpoint para aceitar a solicitação é o:
+Endpoint `POST /api/users/accept`
+
+#### Exemplo de requisição
+
+```json
+{
+  "pacientId": 1,
+  "cuidadorId": 2
+}
+
+---
+
 # Docs API
 
 Documentação dos endpoints da API do aplicativo.
@@ -141,26 +179,6 @@ Realiza o login do usuário.
   "senha": "743890235"
 }
 ```
-
----
-
-### `POST /api/users/cuid`
-
-Cadastra um cuidador para o usuário.
-
-#### Exemplo de requisição
-
-```json
-{
-  "email": "kayky@email.com",
-  "nome": "Kayky Almeida de Souza",
-  "userId": 1
-}
-```
-
-* `email`: e-mail do cuidador.
-* `nome`: nome do cuidador.
-* `userId`: ID do usuário que será acompanhado.
 
 ---
 
