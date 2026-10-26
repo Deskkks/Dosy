@@ -1,15 +1,14 @@
 import express from "express";
 import bodyParser from "body-parser";
+import helmet from "helmet";
 import api from "./routes/index.js";
-import notification from "./utils/notification.js";
 import {applicationDefault, initializeApp,} from 'firebase-admin';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-notification();
-
 app.use(bodyParser.json());
+app.use(helmet());
 app.use("/api", api)
 
 initializeApp({

@@ -9,46 +9,90 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id           Int           @id @default(autoincrement())
-  nome         String
-  email        String        @unique
-  senha        String        @unique
-  cuidadorId   Int?
-  TokenFCM     String?
-  cuidador     User?         @relation("UserCuidador", fields: [cuidadorId], references: [id])
-  cuidadores   User[]        @relation("UserCuidador")
-  historicos   historico[]
-  medicamentos medicamento[]
-}
-
-model medicamento {
-  id                Int         @id @default(autoincrement())
-  nome              String
-  frequencia        Int
-  dosagem           Int
-  unidadeDosagem    String
-  quantidade        Int
-  unidadeQuantidade String
-  dataInicio        DateTime
-  dataFim           DateTime
-  status            Status      @default(ativo)
-  userId            Int
-  historicos        historico[]
-  user              User        @relation(fields: [userId], references: [id])
-}
-
 model historico {
-  id            Int         @id @default(autoincrement())
-  data          DateTime    @default(now())
-  medicamentoId Int
-  userId        Int
-  medicamento   medicamento @relation(fields: [medicamentoId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
+  id                        BigInt       @id @default(autoincrement())
+  usuario_id                Int
+  medicamento_id            Int
+  horario_id                Int?
+  previsto_para             DateTime?     @db.Timestamptz(6)
+  status                    String       @default("pendente")
+  lembrete_enviado_em       DateTime?    @db.Timestamptz(6)
+  segundo_aviso_em          DateTime?    @db.Timestamptz(6)
+  responsavel_notificado_em DateTime?    @db.Timestamptz(6)
+  tomado_em                 DateTime    @db.Timestamptz(6)
+  foto_caminho              String?
+  observacao                String?
+  horarios                  horarios?    @relation(fields: [horario_id], references: [id], onUpdate: NoAction)
+  medicamentos              medicamentos @relation(fields: [medicamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usuarios                  usuarios     @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([medicamento_id, previsto_para])
+  @@index([horario_id], map: "historico_horario")
+  @@index([usuario_id, previsto_para], map: "historico_usuario_dia")
 }
 
-enum Status {
-  ativo
-  inativo
-  sob_demanda
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model cuidadores {
+  id         Int      @id @default(autoincrement())
+  usuario_id Int?
+  nome       String
+  email      String   @unique
+  senha      String
+  telefone   String?  @db.VarChar(20)
+  parentesco String?
+  token      String?
+  criado_em  DateTime @default(now()) @db.Timestamptz(6)
+  usuarios   usuarios? @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model horarios {
+  id             Int          @id @default(autoincrement())
+  medicamento_id Int
+  hora           DateTime     @db.Time(6)
+  historico      historico[]
+  medicamentos   medicamentos @relation(fields: [medicamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([medicamento_id, hora])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medicamentos {
+  id                  Int         @id @default(autoincrement())
+  usuario_id          Int
+  nome                String
+  dosagem             Decimal     @db.Decimal(10, 2)
+  unidade_dosagem     String      @default("mg")
+  quantidade_por_dose Int         @default(1)
+  unidade_quantidade  String      @default("comprimido")
+  frequencia          Int      
+  data_inicio         DateTime    @default(dbgenerated("CURRENT_DATE")) @db.Date
+  data_fim            DateTime?   @db.Date
+  estoque             Int?
+  estoque_minimo      Int         @default(5)
+  observacoes         String?
+  foto_obrigatoria    Boolean     @default(false)
+  ativo               Boolean     @default(true)
+  criado_em           DateTime    @default(now()) @db.Timestamptz(6)
+  historico           historico[]
+  horarios            horarios[]
+  usuarios            usuarios    @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([usuario_id], map: "medicamentos_usuario")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model usuarios {
+  id               Int            @id @default(autoincrement())
+  email            String         @unique
+  nome             String
+  senha_hash       String
+  precisa_cuidador Boolean        @default(false)
+  criado_em        DateTime       @default(now()) @db.Timestamptz(6)
+  cuidadores       cuidadores[]
+  historico        historico[]
+  medicamentos     medicamentos[]
 }

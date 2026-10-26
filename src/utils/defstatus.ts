@@ -10,10 +10,10 @@ export default function defStatus(med:any, dataInicio: Date, dataFim: Date){
 			var horarioTomado
 			var diferenca: number
 			var dose = new Date(dataAtual)
-			dose = new Date(dose.setHours(med.dataInicio.getHours() + (i * med.frequencia), med.dataInicio.getMinutes()))
+			dose = new Date(dose.setHours(med.data_inicio.getHours() + (i * med.frequencia), med.data_inicio.getMinutes()))
 	
-			let dataTomado = med.historicos.find((historico: any) => {
-				diferenca = historico.data.getTime() - dose.getTime()
+			let dataTomado = med.historico.find((historico: any) => {
+				diferenca = historico.tomado_em.getTime() - dose.getTime()
 				return (diferenca >= 0 && diferenca <= med.frequencia*60*60*1000)
 			})
 			
@@ -28,7 +28,7 @@ export default function defStatus(med:any, dataInicio: Date, dataFim: Date){
 					status = "tomado"
 				}
 			} else {
-				if (new Date().getTime() > dose.getTime()) {
+				if (new Date().getTime() > dose.getTime() + 5*60*1000) {
 					// Se o horário atual for maior que o horário da dose e não houver registro de dose tomada, considera-se não tomado
 					status = "não tomado";
 				} else {

@@ -1,408 +1,269 @@
-# Novidades
+## Prefixos das rotas
 
-## Notificações
+As rotas são agrupadas em um roteador principal:
 
-1-O back-end verifica a cada 5 minutos se algum medicamento de algum paciente está atrasado. Caso esteja, o cuidador do paciente recebe uma notificação push no celular.
+| Prefixo | Módulo |
+|---|---|
+| `/users` | Contas, login e vínculo com cuidador |
+| `/meds` | Medicamentos |
+| `/historys` | Histórico, dose do dia e dashboard |
+| `/notification` | Disparo de notificações (cron) |
 
-2-Quando um paciente solicita um novo cuidador, o cuidador recebe uma notificação push no celular informando que ele tem um novo paciente.
-Essa notificação é enviada pelo:
-Endpoint `POST /api/users/requestCuidador`
-
-#### Exemplo de requisição
-
-```json
-{
-  "userId": 1,
-  "nome": "Kayky Almeida de Souza",
-  "email": "kayky@email.com"
-}
-
-**Observações:** o `userId` e o `nome` são o id e o nome do paciente que está solicitando o cuidador. o `email` é o email do cuidador que está sendo solicitado.
-
-É enviado ao cuidador o `userId` para que o aplicativo guarde localmente e utilize-o para fazer requisições futuras.
+O prefixo base (ex.: `/api`) depende de onde esse roteador é montado no `app`.
 
 ---
 
-3-O cuidador pode aceitar ou recusar a solicitação do paciente.
+## Modelo de dados (resumo)
 
-O endpoint para aceitar a solicitação é o:
-Endpoint `POST /api/users/accept`
-
-#### Exemplo de requisição
-
-```json
-{
-  "pacientId": 1,
-  "cuidadorId": 2
-}
+- **usuarios** (pacientes): `id`, `email` (único), `nome`, `senha_hash`, `precisa_cuidador`
+- **cuidadores**: `id`, `usuario_id` (paciente vinculado), `nome`, `email` (único), `senha`, `telefone`, `parentesco`, `token` (FCM)
+- **medicamentos**: `id`, `usuario_id`, `nome`, `dosagem`, `unidade_dosagem`, `frequencia`, `data_inicio`, ...
+- **historico**: registro de cada dose (`previsto_para`, `status`, `tomado_em`, ...)
 
 ---
 
-# Docs API
+## Usuários — `/users`
 
-Documentação dos endpoints da API do aplicativo.
+### `POST /users` — Criar conta de paciente
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `nome` | string | sim | |
+| `email` | string | sim | Único |
+| `senha` | string | sim | Salva em `senha_hash` |
+| `precisa_cuidador` | boolean | não | Padrão `false` |
+
+Respostas:
+- `201`: id do usuário criado (número)
+- `409`: `{ "message": "Já existe uma conta com esse email" }`
+- `500`: `{ "message": "Erro ao criar conta" }`
+
+### `POST /users/cuidador` — Criar conta de cuidador
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `nome` | string | sim | |
+| `email` | string | sim | Único |
+| `senha` | string | sim | |
+| `usuarioId` | number | não | Id do paciente ao qual o cuidador é vinculado |
+| `telefone` | string | não | Até 20 caracteres |
+| `parentesco` | string | não | |
+
+Respostas:
+- `201`: id do cuidador criado (número)
+- `404`: paciente não encontrado
+- `409`: já existe cuidador com esse email
+- `500`: erro ao criar conta do cuidador
+
+### `POST /users/login` — Entrar (paciente ou cuidador)
+
+| Campo | Tipo | Obrigatório |
+|---|---|---|
+| `email` | string | sim |
+| `senha` | string | sim |
+
+O servidor procura primeiro um paciente e depois um cuidador com esse email.
+
+Respostas:
+- `200` paciente: `{ "id": 1, "tipo": "paciente" }`
+- `200` cuidador: `{ "id": 3, "tipo": "cuidador", "pacienteId":? 1 }`
+- `401`: email ou senha errados
+- `500`: erro ao fazer login
+
+### `POST /users/token` — Salvar token FCM do cuidador
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `cuidadorId` | number | sim | |
+| `token` | string | sim | Token FCM do dispositivo |
+
+Respostas: `200` token atualizado, `500` erro ao atualizar.
+
+> O token precisa estar salvo para o cuidador receber notificações.
+
+### `POST /users/requestCuidador` — Paciente pede um cuidador
+
+Envia uma notificação push ao cuidador convidando-o a aceitar o paciente.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `email` | string | sim | Email do cuidador |
+| `nome` | string | sim | Nome do paciente |
+| `userId` | number | sim | Id do paciente |
+
+Requisitos: cuidador cadastrado, com `token` salvo, e Firebase configurado.
+
+Respostas: `200` mensagem enviada, `404` cuidador não encontrado ou sem token, `500` erro ao enviar.
+
+### `POST /users/accept` — Cuidador aceita o paciente
+
+| Campo | Tipo | Obrigatório |
+|---|---|---|
+| `cuidadorId` | number | sim |
+| `pacientId` | number | sim |
+
+Atualiza `cuidadores.usuario_id` para o paciente informado.
+
+Respostas: `200` cuidador aceito, `500` erro ao aceitar.
 
 ---
 
-## Medicamentos
+## Medicamentos — `/meds`
 
-### `POST /api/meds`
+A agenda de doses é calculada a partir de `data_inicio` e `frequencia` (intervalo em **horas** entre as doses).
 
-Cadastra um novo medicamento.
+### `GET /meds/:id` — Listar medicamentos de um paciente
 
-#### Exemplo de requisição
+| Parâmetro | Onde | Descrição |
+|---|---|---|
+| `id` | URL | Id do paciente (`usuario_id`) |
+
+Resposta `200`:
 
 ```json
-{
-  "data": {
-    "nome": "losartana",
-    "dataFim": "2026-12-31 08:00:00-03:00",
-    "dataInicio": "2026-01-01 08:00:00-03:00",
-    "dosagem": 50,
-    "frequencia": 8,
-    "quantidade": 60,
-    "unidadeDosagem": "mg",
-    "unidadeQuantidade": "comprimido",
-    "userId": 1
+[
+  {
+    "id": 1,
+    "nome": "Dipirona",
+    "dosagem": "500 mg",
+    "doseDiaria": ["06:00", "14:00", "22:00"]
   }
-}
+]
 ```
 
----
+`500`: `{ "message": "Erro ao buscar medicamentos" }`
 
-### `POST /api/meds/edit`
+### `POST /meds` — Criar medicamento
 
-Altera informações de um medicamento que já existe.
+O corpo é enviado direto para o banco.
 
-> **Observação:** o `?` indica que o campo é opcional.
-> Envie no objeto `data` apenas as informações que precisam ser alteradas.
+| Campo | Tipo | Obrigatório | Padrão |
+|---|---|---|---|
+| `usuario_id` | number | sim | |
+| `nome` | string | sim | |
+| `dosagem` | number | sim | |
+| `frequencia` | number | sim | Intervalo em horas |
+| `unidade_dosagem` | string | não | `"mg"` |
+| `quantidade_por_dose` | number | não | `1` |
+| `unidade_quantidade` | string | não | `"comprimido"` |
+| `data_inicio` | date (ISO) | não | Data atual |
+| `data_fim` | date (ISO) | não | |
+| `estoque` | number | não | |
+| `estoque_minimo` | number | não | `5` |
+| `observacoes` | string | não | |
+| `foto_obrigatoria` | boolean | não | `false` |
+| `ativo` | boolean | não | `true` |
 
-#### Exemplo de requisição
+Respostas: `201` medicamento criado (objeto completo), `500` erro ao criar.
+
+### `POST /meds/edit` — Editar medicamento
 
 ```json
 {
   "id": 1,
-  "data": {
-    "nome?": "losartana",
-    "dataFim?": "2026-12-31 08:00:00-03:00",
-    "dataInicio?": "2026-01-01 08:00:00-03:00",
-    "dosagem?": 50,
-    "frequencia?": 8,
-    "quantidade?": 60,
-    "unidadeDosagem?": "mg",
-    "unidadeQuantidade?": "comprimido"
-  }
+  "data": { "nome": "Novo nome", "frequencia": 6 }
 }
 ```
 
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `id` | number | sim | Id do medicamento |
+| `data` | objeto | sim | Campos de `medicamentos` a alterar |
+
+Respostas: `200` medicamento atualizado, `500` erro ao editar.
+
+### `DELETE /meds/:id` — Excluir medicamento
+
+| Parâmetro | Onde | Descrição |
+|---|---|---|
+| `id` | URL | Id do medicamento |
+
+Também apaga o histórico e os horários ligados a ele (`onDelete: Cascade`).
+
+Respostas: `200` medicamento excluído (objeto), `500` erro ao excluir.
+
 ---
 
-### `GET /api/meds/:userId`
+## Histórico — `/historys`
 
-Recebe informações dos medicamentos de um usuário.
+### `POST /historys` — Registrar dose no histórico
 
-#### Exemplo de URL
+O corpo é enviado direto para o banco.
 
-```text
-URL/api/meds/1
-```
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `usuario_id` | number | sim | |
+| `medicamento_id` | number | sim | |
+| `previsto_para` | datetime (ISO) | sim | Único junto com `medicamento_id` |
+| `horario_id` | number | não | |
+| `status` | string | não | Padrão `"pendente"` |
+| `tomado_em` | datetime (ISO) | não | Hora em que a dose foi tomada |
+| `lembrete_enviado_em` | datetime (ISO) | não | |
+| `segundo_aviso_em` | datetime (ISO) | não | |
+| `responsavel_notificado_em` | datetime (ISO) | não | |
+| `foto_caminho` | string | não | |
+| `observacao` | string | não | |
 
-#### Exemplo de resposta
+Respostas: `201` registro criado, `500` `{ "error": "...", "details": "..." }`.
+
+### `GET /historys/doseDia/:id` — Doses de hoje
+
+| Parâmetro | Onde | Descrição |
+|---|---|---|
+| `id` | URL | Id do paciente |
+
+Retorna, para cada medicamento, as doses do dia e o status de cada uma.
 
 ```json
 [
   {
-    "nome": "losartana",
-    "dosagem": "50 mg",
-    "doseDiaria": [
-      "00:00",
-      "08:00",
-      "16:00"
-    ]
-  }
-]
-```
-
-> **Observação:** o `[]` indica que a resposta é uma lista de objetos.
-
----
-
-### `DELETE /api/meds/:userId`
-
-Deleta um medicamento.
-
-#### Exemplo de URL
-
-```text
-URL/api/meds/1
-```
-
----
-
-# Usuários
-
-### `POST /api/users`
-
-Cria um novo usuário.
-
-#### Exemplo de requisição
-
-```json
-{
-  "data": {
-    "email": "kayky@email.com",
-    "nome": "Kayky Almeida de Souza",
-    "senha": "743890235"
-  }
-}
-```
-
-#### Exemplo de resposta
-
-```json
-{
-  "userId": 1
-}
-```
-
-> **Importante:** guarde o `userId` localmente para utilizá-lo nas outras requisições.
-
----
-
-### `POST /api/users/login`
-
-Realiza o login do usuário.
-
-#### Exemplo de requisição
-
-```json
-{
-  "email": "kayky@email.com",
-  "senha": "743890235"
-}
-```
-
----
-
-# Histórico
-
-### `POST /api/historys`
-
-Cria um novo histórico de medicamento.
-
-#### Exemplo de requisição
-
-```json
-{
-  "data": {
-    "medicamentoId": 1,
-    "userId": 1,
-    "data?": "2026-09-14 08:00:00-03:00"
-  }
-}
-```
-
----
-
-### `GET /api/historys/doseDia`
-
-Recebe as doses do dia de um usuário.
-
-#### Exemplo de requisição
-
-```json
-{
-  "id": 1
-}
-```
-
-#### Exemplo de resposta
-
-```json
-[
-  {
-    "nome": "dipirona",
-    "dosagem": "50 mg",
+    "nome": "Dipirona",
+    "dosagem": "500 mg",
     "doses": [
-      {
-        "horario": "08:00",
-        "tomado": "08:05",
-        "status": "tomado"
-      }
+      { "horario": "06:00", "status": "tomado" },
+      { "horario": "14:00", "status": "pendente" }
     ]
   }
 ]
 ```
 
-O campo `status` pode assumir os seguintes valores:
+Valores de `status`: `tomado`, `atrasado`, `não tomado`, `pendente`.
 
-* `tomado`
-* `atrasado`
-* `não tomado`
-* `pendente`
+Respostas: `200` lista, `500` `{ "error": "Erro ao buscar doses do dia", "details": "..." }`.
+
+### `GET /historys/dashboard/:id` — Dashboard de adesão
+
+| Parâmetro | Onde | Descrição |
+|---|---|---|
+| `id` | URL | Id do paciente |
+
+Resposta `200`:
+
+| Campo | Descrição |
+|---|---|
+| `adesao` | % de adesão geral do dia (doses tomadas ou atrasadas ÷ doses esperadas) |
+| `dosesEsp` | Doses esperadas hoje (exclui as `pendente`) |
+| `dosesTom` | Doses tomadas hoje (`tomado` + `atrasado`) |
+| `dosesAtr` | Doses tomadas com atraso |
+| `dosesNT` | Doses não tomadas |
+| `adesaoR` | Lista por remédio: `{ remedio, dosesEsp, dosesTom, adesao }` |
+| `adesaoD` | Lista por dia da semana (semana passada): `{ adesao, diaSem }` |
+| `horariosEsq` | Horários em que mais se esquece de tomar: `{ horario, qtd, porcentgem }` |
 
 ---
 
-# Dashboard
+## Notificações — `/notification`
 
-### `GET /api/historys/dashboard`
+### `GET /notification` — Avisar cuidadores sobre doses atrasadas
 
-Retorna os dados utilizados para montar o dashboard de adesão do usuário.
+Pensada para ser chamada por um **cron job** (ex.: Vercel Cron), **a cada 5 minutos**.
 
-#### Exemplo de URL
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <CRON_SECRET>` |
 
-```text
-URL/api/historys/dashboard?id=userId
-```
+Funcionamento: para cada paciente que tenha ao menos um cuidador com token FCM, procura doses de hoje com status `não tomado` cujo horário passou há no máximo 5 minutos e envia um push a todos os cuidadores com token: *"O paciente não tomou o medicamento X no horário correto"*.
 
-#### Exemplo de resposta
+Respostas: `200` texto `Notificações enviadas com sucesso`, `401` `Unauthorized` (header ausente ou incorreto).
 
-```json
-{
-  "adesao": "23.6",
-  "dosesEsp": 416,
-  "dosesTom": 98,
-  "dosesAtr": 64,
-  "dosesNT": 248,
-
-  "adesaoD": [
-    {
-      "adesao": "46.2",
-      "diaSem": "domingo"
-    },
-    {
-      "adesao": "50.0",
-      "diaSem": "segunda-feira"
-    },
-    {
-      "adesao": "42.3",
-      "diaSem": "terça-feira"
-    },
-    {
-      "adesao": "42.3",
-      "diaSem": "quarta-feira"
-    },
-    {
-      "adesao": "23.1",
-      "diaSem": "quinta-feira"
-    },
-    {
-      "adesao": "0.0",
-      "diaSem": "sexta-feira"
-    },
-    {
-      "adesao": "0.0",
-      "diaSem": "sábado"
-    }
-  ],
-
-  "adesaoR": [
-    {
-      "remedio": "Dipirona",
-      "dosesEsp": 126,
-      "dosesTom": 28,
-      "adesao": "22"
-    },
-    {
-      "remedio": "Paracetamol",
-      "dosesEsp": 95,
-      "dosesTom": 21,
-      "adesao": "22"
-    },
-    {
-      "remedio": "Amoxicilina",
-      "dosesEsp": 63,
-      "dosesTom": 16,
-      "adesao": "25"
-    },
-    {
-      "remedio": "Omeprazol",
-      "dosesEsp": 32,
-      "dosesTom": 4,
-      "adesao": "13"
-    },
-    {
-      "remedio": "Ibuprofeno",
-      "dosesEsp": 94,
-      "dosesTom": 29,
-      "adesao": "31"
-    }
-  ],
-
-  "horariosEsq": [
-    {
-      "horario": "06:00",
-      "qtd": 7,
-      "porcentagem": "50.0"
-    },
-    {
-      "horario": "07:00",
-      "qtd": 5,
-      "porcentagem": "35.7"
-    },
-    {
-      "horario": "11:00",
-      "qtd": 5,
-      "porcentagem": "35.7"
-    },
-    {
-      "horario": "15:00",
-      "qtd": 7,
-      "porcentagem": "50.0"
-    },
-    {
-      "horario": "17:00",
-      "qtd": 7,
-      "porcentagem": "50.0"
-    },
-    {
-      "horario": "18:00",
-      "qtd": 5,
-      "porcentagem": "35.7"
-    }
-  ]
-}
-```
-
-### Estrutura da resposta
-
-#### Dados gerais
-
-| Campo      | Descrição                             |
-| ---------- | ------------------------------------- |
-| `adesao`   | Porcentagem geral de adesão           |
-| `dosesEsp` | Quantidade de doses esperadas         |
-| `dosesTom` | Quantidade de doses tomadas           |
-| `dosesAtr` | Quantidade de doses tomadas atrasadas |
-| `dosesNT`  | Quantidade de doses não tomadas       |
-
-#### `adesaoD`
-
-Contém a adesão agrupada por dia da semana.
-
-| Campo    | Descrição                         |
-| -------- | --------------------------------- |
-| `adesao` | Porcentagem de adesão naquele dia |
-| `diaSem` | Dia da semana                     |
-
-#### `adesaoR`
-
-Contém a adesão agrupada por medicamento.
-
-| Campo      | Descrição                     |
-| ---------- | ----------------------------- |
-| `remedio`  | Nome do medicamento           |
-| `dosesEsp` | Quantidade de doses esperadas |
-| `dosesTom` | Quantidade de doses tomadas   |
-| `adesao`   | Porcentagem de adesão         |
-
-#### `horariosEsq`
-
-Contém os horários em que o usuário mais esquece de tomar os medicamentos.
-
-| Campo         | Descrição                                       |
-| ------------- | ----------------------------------------------- |
-| `horario`     | Horário da dose                                 |
-| `qtd`         | Quantidade de doses esquecidas                  |
-| `porcentagem` | Porcentagem de doses esquecidas naquele horário |
-| `adesao`      | —                                               |
+---

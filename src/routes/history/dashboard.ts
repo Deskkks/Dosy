@@ -1,36 +1,38 @@
 import express from "express";
 import { prisma } from "../../prisma.js";
 import defStatus from "../../utils/defstatus.js"
+import { DateTime } from "luxon";
 
 const router = express.Router();
 
+const tz = "America/Sao_Paulo"
+
 // Get Dashboard
 
-router.get("/", async (req, res) => {
-	const hoje = new Date()
-	const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth()-1, hoje.getDate(),0)
-	const dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(),23,59,59,999)
+router.get("/:id", async (req, res) => {
+	const dataInicio = DateTime.now().setZone(tz).startOf("day").toJSDate()
+	const dataFim = DateTime.now().setZone(tz).endOf("day").toJSDate()
 
-	const meds = await prisma.medicamento.findMany({
+	const meds = await prisma.medicamentos.findMany({
 		where: {
-			userId: Number(req.query.id)
+			usuario_id: Number(req.params.id)
 		},
 		select: {
 			nome: true,
 			dosagem: true,
-			unidadeDosagem: true,
+			unidade_: true,
 			dataInicio: true,
 			frequencia: true,
 			id: true,
-			historicos: {
+			historico: {
 				where: {
-					data: {
+					tomado_em: {
 						gte: dataInicio,
-						lt: dataFim
+						lte: dataFim,
 					}
 				},
 				select: {
-					data: true
+					tomado_em: true
 				}
 			}
 		}
@@ -47,10 +49,12 @@ router.get("/", async (req, res) => {
 		dash.push(status)
 
 		var dosesEsp = status.filter((stats) => stats.status != "pendente").length
-		var dosesTom = status.filter((stats) => stats.status == "tomado").length
+		var dosesTom = status.filter((stats) => stats.status == "tomado" || stats.status == "atrasado").length
+		var adesao = 0
 
-		var adesao = (dosesTom / dosesEsp) * 100
-		
+		if(dosesEsp > 0){
+			adesao = (dosesTom / dosesEsp) * 100
+		}
 		return({
 			remedio: med.nome,
 			dosesEsp: dosesEsp,
@@ -61,35 +65,37 @@ router.get("/", async (req, res) => {
 
 	dash = dash.flat(Infinity)
 	
-	var dosesEsp = dash.length
-	var dosesTom = dash.filter((dash) => dash?.status == "tomado").length
+	var dosesEsp = dash.filter((dash) => dash?.status != "pendente").length
+	var dosesTom = dash.filter((dash) => dash?.status == "tomado" || dash?.status == "atrasado").length
 	var dosesAtr = dash.filter((dash) => dash?.status == "atrasado").length
 	var dosesNT = dash.filter((dash) => dash?.status == "não tomado").length
-	var adesao = ((dosesTom / dosesEsp) * 100).toFixed(1)
-	
-	var inicioUltSem = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - hoje.getDay() - 7, 0)
-	var fimUltSem = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - hoje.getDay(),23,59,59,999)
+	var adesao = 0
+	if(dosesEsp > 0){
+		adesao = Number(((dosesTom / dosesEsp) * 100).toFixed(1))
+	}
+	var inicioUltSem = DateTime.now().startOf("week").minus({day: 1}).toJSDate()
+	var fimUltSem = DateTime.now().endOf("week").minus({day: 1}).toJSDate()
 
-	var medsUltSem = await prisma.medicamento.findMany({
+	var medsUltSem = await prisma.medicamentos.findMany({
 		where: {
-			userId: Number(req.query.id)
+			usuario_id: Number(req.params.id)
 		},
 		select: {
 			nome: true,
 			dosagem: true,
-			unidadeDosagem: true,
-			dataInicio: true,
+			unidade_dosagem: true,
+			data_inicio: true,
 			frequencia: true,
 			id: true,
-			historicos: {
+			historico: {
 				where: {
-					data: {
+					tomado_em: {
 						gte: inicioUltSem,
-						lt: fimUltSem
+						lte: fimUltSem
 					}
 				},
 				select: {
-					data: true
+					tomado_em: true
 				}
 			}
 		}
@@ -99,17 +105,17 @@ router.get("/", async (req, res) => {
 	var statusD = new Array
 	
 	medsUltSem.map((medUltSem: any) => {
-		let dataAtual = new Date(inicioUltSem)
+		let dataAtual = DateTime.fromJSDate(inicioUltSem)
 		
 		for(let i = 0; i < 7; i++){
-			let proximoDia = new Date(hoje.getFullYear(), hoje.getMonth(), dataAtual.getDate() + 1,23,59,59,999)
+			let proximoDia = dataAtual.endOf("day")
 			var status
 
-			status = defStatus(medUltSem, dataAtual, proximoDia)
+			status = defStatus(medUltSem, dataAtual.toJSDate(), proximoDia.toJSDate())
 			statusEsq.push(status)
 
 			var dosesEsp = status.filter((dash) => dash.status != "pendente").length
-			var dosesTom = status.filter((dash) => dash.status == "tomado").length
+			var dosesTom = status.filter((dash) => dash.status == "tomado" || dash.status == "atrasado").length
 
 			statusD.push({
 				dosesEsp: dosesEsp,
@@ -117,9 +123,7 @@ router.get("/", async (req, res) => {
 				diaSem: dataAtual
 			})
 			
-			dataAtual = new Date(dataAtual)
-			dataAtual.setDate(dataAtual.getDate() + 1)
-			dataAtual.setHours(0, 0, 0, 0)
+			dataAtual = dataAtual.plus({day : 1})
 		}
 	})
 
@@ -139,11 +143,18 @@ router.get("/", async (req, res) => {
 			dosesTom += ad.dosesTom
 			diaSem = ad.diaSem.toLocaleString('pt-BR', { weekday: 'long' })
 		})
-
-		adesaoD.push({
-			adesao: ((dosesTom / dosesEsp) * 100).toFixed(1),
-			diaSem: diaSem
-		})
+		
+		if(dosesEsp > 0){
+			adesaoD.push({
+				adesao: ((dosesTom / dosesEsp) * 100).toFixed(1),
+				diaSem: diaSem
+			})
+		}else{
+			adesaoD.push({
+				adesao: 0,
+				diaSem: diaSem
+			})
+		}
 	}
 	
 	var horariosEsq = new Array
@@ -168,15 +179,22 @@ router.get("/", async (req, res) => {
 		let statusPorHora = statusEsq.filter(statsEsq => {
 			return statsEsq.horario == horario
 		})
-		
-		horariosEsq.push({
-			horario: horario,
-			qtd: statusEsquecidos.length,
-			porcentgem:	((statusEsquecidos.length / statusPorHora.length) * 100).toFixed(1)
-		})
+		if(statusPorHora.length > 0){
+			horariosEsq.push({
+				horario: horario,
+				qtd: statusEsquecidos.length,
+				porcentgem:	((statusEsquecidos.length / statusPorHora.length) * 100).toFixed(1)
+			})
+		}else{
+			horariosEsq.push({
+				horario: horario,
+				qtd: 0,
+				porcentgem: 0
+			})
+		}
 	})
 
-	res.json({
+	res.status(200).json({
 		adesao: adesao,
 		dosesEsp: dosesEsp,
 		dosesTom: dosesTom,

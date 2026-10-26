@@ -4,75 +4,138 @@ import { getMessaging } from "firebase-admin/messaging";
 
 const router = express.Router();
 
-// Post criar conta
+// ---------- criar conta (paciente) ----------
 
 router.post("/", async (req, res) => {
+  const { nome, email, senha, precisa_cuidador } = req.body;
 
-  const newUser = await prisma.user.create({
-    data: req.body.data
-  })
+  try {
+    const newUser = await prisma.usuarios.create({
+      data: {
+        nome,
+        email,
+        senha_hash: senha, // versão simples: sem hash
+        precisa_cuidador: Boolean(precisa_cuidador),
+      },
+    });
+    res.status(201).json(newUser.id);
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({ message: "Já existe uma conta com esse email" });
+    }
+    res.status(500).json({ message: "Erro ao criar conta" });
+  }
+});
 
-  res.json(newUser.id).status(201)
-})
+// ---------- criar conta (cuidador) ----------
 
-//post entrar conta
+router.post("/cuidador", async (req, res) => {
+  const { nome, email, senha, telefone, parentesco, usuarioId } = req.body;
+
+  try {
+    const novoCuidador = await prisma.cuidadores.create({
+      data: {
+        nome,
+        email,
+        senha,
+        telefone,
+        parentesco,
+        usuario_id: Number(usuarioId), // paciente ao qual o cuidador está ligado
+      },
+    });
+    res.status(201).json(novoCuidador.id);
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({ message: "Já existe um cuidador com esse email" });
+    }
+    if (error?.code === "P2003") {
+      return res.status(404).json({ message: "Paciente não encontrado" });
+    }
+    res.status(500).json({ message: "Erro ao criar conta do cuidador" });
+  }
+});
+
+// ---------- entrar (paciente ou cuidador) ----------
 
 router.post("/login", async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      email: req.body.email,
-      senha: req.body.senha
+  const { email, senha } = req.body;
+
+  try {
+    const usuario = await prisma.usuarios.findUnique({ where: { email } });
+    if (usuario && usuario.senha_hash === senha) {
+      return res.status(200).json({ id: usuario.id, tipo: "paciente" });
     }
-  })
 
-  if(user){
-    res.json(user.id).status(200)
-  }else {
-    res.json({message: "O email ou senha estão errados ou não existe"}).status(404)
+    const cuidador = await prisma.cuidadores.findUnique({ where: { email } });
+    if (cuidador && cuidador.senha === senha) {
+      return res.status(200).json({
+        id: cuidador.id,
+        tipo: "cuidador",
+        pacienteId: cuidador.usuario_id,
+      });
+    }
+
+    res.status(401).json({ message: "O email ou senha estão errados ou não existe" });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao fazer login" });
   }
-})
+});
 
-//Post Adicionar Cuidador
+// ---------- paciente pede para um cuidador (notificação push) ----------
 
 router.post("/requestCuidador", async (req, res) => {
+  try {
+    const cuidador = await prisma.cuidadores.findUnique({
+      where: { email: req.body.email },
+    });
 
-  const cuidador = await prisma.user.findUnique({
-    where: {
-      email: req.body.email
+    if (!cuidador?.token) {
+      return res.status(404).json({ message: "Cuidador não encontrado ou sem token de notificação" });
     }
-  })
 
-  if(cuidador?.TokenFCM){
-    const message = {
-      token: cuidador.TokenFCM,
+    await getMessaging().send({
+      token: cuidador.token,
       notification: {
         title: "Você tem um novo paciente",
-        body: "O paciente " + req.body.nome + " deseja que você seja seu cuidador. Acesse o aplicativo para aceitar ou recusar."
+        body: `O paciente ${req.body.nome} deseja que você seja seu cuidador. Acesse o aplicativo para aceitar ou recusar.`,
       },
       data: {
-        pacientId: req.body.userId,
-      }
-    };
-
-    getMessaging().send(message)
-    .then((response) => {
-      console.log("Mensagem enviada com sucesso:", response);
-    })
-    .catch((error) => {
-      console.log("Erro ao enviar mensagem:", error);
+        pacientId: String(req.body.userId),
+      },
     });
-  }
 
-})
+    res.json({ message: "Mensagem enviada com sucesso" });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao enviar mensagem" });
+  }
+});
+
+// ---------- cuidador aceita o paciente ----------
 
 router.post("/accept", async (req, res) => {
+  try {
+    await prisma.cuidadores.update({
+      where: { id: Number(req.body.cuidadorId) },
+      data: { usuario_id: Number(req.body.pacientId) },
+    });
+    res.status(200).json({ message: "Cuidador aceito com sucesso" });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao aceitar cuidador" });
+  }
+});
 
-    await prisma.user.update({
-      where: { id: req.body.pacientId },
-      data: { cuidadorId : req.body.cuidadorId }
-    })
-    res.status(200).json({message: "Cuidador aceito com sucesso"})
+// ---------- salvar token FCM do cuidador ----------
 
-})
+router.post("/token", async (req, res) => {
+  try {
+    await prisma.cuidadores.update({
+      where: { id: Number(req.body.cuidadorId) },
+      data: { token: req.body.token },
+    });
+    res.status(200).json({ message: "Token atualizado com sucesso" });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao atualizar token" });
+  }
+});
 
 export default router;
