@@ -20,7 +20,7 @@ router.get("/:id", async (req, res) => {
 		select: {
 			nome: true,
 			dosagem: true,
-			unidade_: true,
+			unidade_dosagem: true,
 			dataInicio: true,
 			frequencia: true,
 			id: true,
