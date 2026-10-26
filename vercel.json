@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "cron": {
+  "crons": {
     "path": "/api/notification",
     "schedule": "*/5 * * * *"
   }
