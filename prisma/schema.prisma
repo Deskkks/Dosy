@@ -70,6 +70,7 @@ model medicamentos {
   frequencia          Int      
   data_inicio         DateTime    @default(dbgenerated("CURRENT_DATE")) @db.Date
   data_fim            DateTime?   @db.Date
+  horario_dose        DateTime    @db.Time(0)
   estoque             Int?
   estoque_minimo      Int         @default(5)
   observacoes         String?

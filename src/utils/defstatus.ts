@@ -5,12 +5,12 @@ export default function defStatus(med:any, dataInicio: Date, dataFim: Date){
 	var dataAtual = new Date(dataInicio)
 	
 	while(dataAtual <= dataFim){
-		for (let i = 0; 24 > med.frequencia * i; i++) {
+		for (let i = 0; 24 >= med.frequencia * i; i++) {
 			let status
 			var horarioTomado
 			var diferenca: number
 			var dose = new Date(dataAtual)
-			dose = new Date(dose.setHours(med.data_inicio.getHours() + (i * med.frequencia), med.data_inicio.getMinutes()))
+			dose = new Date(dose.setHours(med.horario_dose.getHours() + (i * med.frequencia), med.horario_dose.getMinutes()))
 	
 			let dataTomado = med.historico.find((historico: any) => {
 				diferenca = historico.tomado_em.getTime() - dose.getTime()

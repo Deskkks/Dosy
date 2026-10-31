@@ -21,7 +21,7 @@ router.get("/:id", async (req, res) => {
 			nome: true,
 			dosagem: true,
 			unidade_dosagem: true,
-			dataInicio: true,
+			data_inicio: true,
 			frequencia: true,
 			id: true,
 			historico: {
