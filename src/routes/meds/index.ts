@@ -44,8 +44,8 @@ router.get("/:id", async (req, res) => {
       }
     })
     res.status(200).json(medsRes);
-  }).catch(() => {
-    res.status(500).json({ message: "Erro ao buscar medicamentos" })
+  }).catch((err) => {
+    res.status(500).send({ message: "Erro ao buscar medicamentos", error: err })
   })
 });
 
@@ -56,22 +56,22 @@ router.post("/", async (req, res) => {
   const data_dose = DateTime.fromFormat(horario_dose, "HH:mm", { zone: "America/Sao_Paulo" }).toJSDate()
   const newMeds = await prisma.medicamentos.create({
     data: {
-      dosagem: req.body.dosegem,
-      frequencia: req.body.frequencia,
-      horario_dose: data_dose,
-      nome: req.body.nome,
-      data_fim: req.body.data_fim,
-      data_inicio: req.body.data_inicio,
-      observacoes: req.body.observacoes,
-      unidade_dosagem: req.body.unidade_dosagem,
-      estoque: req.body.estoque,
-      unidade_quantidade: req.body.unidade_quantidade,
-      usuario_id: req.body.usuario_id,
+      dosagem: req.body.dosagem || null,
+      frequencia: req.body.frequencia || null,
+      horario_dose: data_dose || null,
+      nome: req.body.nome || null,
+      data_fim: req.body.data_fim || null,
+      data_inicio: req.body.data_inicio || null,
+      observacoes: req.body.observacoes || null,
+      unidade_dosagem: req.body.unidade_dosagem || null,
+      estoque: req.body.estoque || null,
+      unidade_quantidade: req.body.unidade_quantidade || null,
+      usuario_id: req.body.usuario_id || null,
     }
   }).then((newMeds) => {
     res.status(201).json(newMeds);
-  }).catch(() => {
-    res.status(500).json({ message: "Erro ao criar medicamento" })
+  }).catch((err) => {
+    res.status(500).send({ message: "Erro ao criar medicamento", error: err })
   })
 });
 
@@ -83,22 +83,22 @@ router.post("/edit", async (req, res) => {
   const updatedMeds = await prisma.medicamentos.update({
     where: { id: Number(req.body.id) },
     data: {
-      dosagem: req.body.dosegem,
-      frequencia: req.body.frequencia,
-      horario_dose: data_dose,
-      nome: req.body.nome,
-      data_fim: req.body.data_fim,
-      data_inicio: req.body.data_inicio,
-      observacoes: req.body.observacoes,
-      unidade_dosagem: req.body.unidade_dosagem,
-      estoque: req.body.estoque,
-      unidade_quantidade: req.body.unidade_quantidade,
-      usuario_id: req.body.usuario_id,
+      dosagem: req.body.dosagem || null,
+      frequencia: req.body.frequencia || null,
+      horario_dose: data_dose || null,
+      nome: req.body.nome || null,
+      data_fim: req.body.data_fim || null,
+      data_inicio: req.body.data_inicio || null,
+      observacoes: req.body.observacoes || null,
+      unidade_dosagem: req.body.unidade_dosagem || null,
+      estoque: req.body.estoque || null,
+      unidade_quantidade: req.body.unidade_quantidade || null,
+      usuario_id: req.body.usuario_id || null,
     },
   }).then((updatedMeds) => {
     res.status(200).json(updatedMeds);
-  }).catch(() => {
-    res.status(500).json({ message: "Erro ao editar medicamento" })
+  }).catch((err) => {
+    res.status(500).send({ message: "Erro ao editar medicamento", error: err })
   })
 });
 
@@ -109,8 +109,8 @@ router.delete("/:id", async (req, res) => {
     where: { id: Number(req.params.id) },
   }).then((deletedMeds) => {
     res.status(200).json(deletedMeds);
-  }).catch(() => {
-    res.status(500).json({ message: "Erro ao excluir medicamento" })
+  }).catch((err) => {
+    res.status(500).send({ message: "Erro ao deletar medicamento", error: err })
   })
 });
 
