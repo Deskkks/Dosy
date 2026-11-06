@@ -22,6 +22,7 @@ router.get("/:id", async (req, res) => {
 			unidade_dosagem: true,
 			data_inicio: true,
 			frequencia: true,
+			horario_dose: true,
 			id: true,
 			historico: {
 				where: {
@@ -38,7 +39,6 @@ router.get("/:id", async (req, res) => {
 	}).then((meds) => {
 
 		const medsRes = meds.map((med: any) => {
-			
 			return {
 				nome: med.nome,
 				dosagem: String(med.dosagem) + " " + med.unidade_dosagem,

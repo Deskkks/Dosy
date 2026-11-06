@@ -24,6 +24,7 @@ router.get("/:id", async (req, res) => {
 			data_inicio: true,
 			frequencia: true,
 			id: true,
+			horario_dose: true,
 			historico: {
 				where: {
 					tomado_em: {
@@ -87,6 +88,7 @@ router.get("/:id", async (req, res) => {
 			data_inicio: true,
 			frequencia: true,
 			id: true,
+			horario_dose: true,
 			historico: {
 				where: {
 					tomado_em: {
@@ -120,7 +122,7 @@ router.get("/:id", async (req, res) => {
 			statusD.push({
 				dosesEsp: dosesEsp,
 				dosesTom: dosesTom,
-				diaSem: dataAtual
+				diaSem: dataAtual.toJSDate()
 			})
 			
 			dataAtual = dataAtual.plus({day : 1})

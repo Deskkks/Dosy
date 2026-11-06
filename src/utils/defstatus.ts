@@ -1,11 +1,11 @@
 import padData from "./padData.js"
 
-export default function defStatus(med:any, dataInicio: Date, dataFim: Date){
+export default function fdefStatus(med:any, dataInicio: Date, dataFim: Date){
 	var horarios = new Array
 	var dataAtual = new Date(dataInicio)
 	
 	while(dataAtual <= dataFim){
-		for (let i = 0; 24 >= med.frequencia * i; i++) {
+		for (let i = 0; 24 > med.frequencia * i; i++) {
 			let status
 			var horarioTomado
 			var diferenca: number
