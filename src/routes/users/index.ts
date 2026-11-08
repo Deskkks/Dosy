@@ -87,14 +87,15 @@ router.post("/requestCuidador", async (req, res) => {
   try {
     const cuidador = await prisma.cuidadores.findUnique({
       where: { email: req.body.email },
+      select: {
+        token: true,
+      }
     });
-
     if (!cuidador?.token) {
       return res.status(404).json({ message: "Cuidador não encontrado ou sem token de notificação" });
     }
-
     await getMessaging().send({
-      token: cuidador.token,
+      token: String(cuidador?.token),
       notification: {
         title: "Você tem um novo paciente",
         body: `O paciente ${req.body.nome} deseja que você seja seu cuidador. Acesse o aplicativo para aceitar ou recusar.`,
@@ -103,10 +104,9 @@ router.post("/requestCuidador", async (req, res) => {
         pacientId: String(req.body.userId),
       },
     });
-
     res.json({ message: "Mensagem enviada com sucesso" });
   } catch (error) {
-    res.status(500).json({ message: "Erro ao enviar mensagem" });
+    res.status(500).json({ message: "Erro ao enviar mensagem", error: error });
   }
 });
 
@@ -137,5 +137,4 @@ router.post("/token", async (req, res) => {
     res.status(500).json({ message: "Erro ao atualizar token" });
   }
 });
-
 export default router;
