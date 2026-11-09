@@ -79,7 +79,7 @@ router.post("/", async (req, res) => {
 
 router.post("/edit", async (req, res) => {
   const { horario_dose } = req.body
-  const data_dose = DateTime.fromFormat(horario_dose, "HH:mm", { zone: "America/Sao_Paulo" }).toJSDate()
+  const data_dose = horario_dose ?  DateTime.fromFormat(horario_dose, "HH:mm", { zone: "America/Sao_Paulo" }).toJSDate() : undefined
   const updatedMeds = await prisma.medicamentos.update({
     where: { id: Number(req.body.id) },
     data: {
