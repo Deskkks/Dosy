@@ -83,17 +83,17 @@ router.post("/edit", async (req, res) => {
   const updatedMeds = await prisma.medicamentos.update({
     where: { id: Number(req.body.id) },
     data: {
-      dosagem: req.body.dosagem || null,
-      frequencia: req.body.frequencia || null,
-      horario_dose: data_dose || null,
-      nome: req.body.nome || null,
-      data_fim: req.body.data_fim || null,
-      data_inicio: req.body.data_inicio || null,
-      observacoes: req.body.observacoes || null,
-      unidade_dosagem: req.body.unidade_dosagem || null,
-      estoque: req.body.estoque || null,
-      unidade_quantidade: req.body.unidade_quantidade || null,
-      usuario_id: req.body.usuario_id || null,
+      dosagem: req.body.dosagem || undefined,
+      frequencia: req.body.frequencia || undefined,
+      horario_dose: data_dose || undefined,
+      nome: req.body.nome || undefined,
+      data_fim: req.body.data_fim || undefined,
+      data_inicio: req.body.data_inicio || undefined,
+      observacoes: req.body.observacoes || undefined,
+      unidade_dosagem: req.body.unidade_dosagem || undefined,
+      estoque: req.body.estoque || undefined,
+      unidade_quantidade: req.body.unidade_quantidade || undefined,
+      usuario_id: req.body.usuario_id || undefined,
     },
   }).then((updatedMeds) => {
     res.status(200).json(updatedMeds);
