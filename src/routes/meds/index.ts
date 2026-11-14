@@ -49,6 +49,34 @@ router.get("/:id", async (req, res) => {
   })
 });
 
+router.get("/cuid/:cuidadorId", async (req, res) => {
+  try {
+    const meds = await prisma.cuidadores.findUnique({
+      where: { id: Number(req.params.cuidadorId) },
+      select: {
+        usuarios: {
+          select: {
+            nome: true,
+            medicamentos: {
+              select: {
+                id: true,
+                nome: true,
+                dosagem: true,
+                unidade_dosagem: true,
+                horario_dose: true,
+                frequencia: true
+              }
+            }
+          }
+        }
+      }
+    })
+    res.status(200).json(meds)
+  } catch (error) {
+    res.status(500).send({ message: "Erro ao buscar medicamentos", error: error })
+  }
+})
+
 // Post criar medicamento
 
 router.post("/", async (req, res) => {
@@ -64,7 +92,6 @@ router.post("/", async (req, res) => {
       data_inicio: req.body.data_inicio || null,
       observacoes: req.body.observacoes || null,
       unidade_dosagem: req.body.unidade_dosagem || null,
-      estoque: req.body.estoque || null,
       unidade_quantidade: req.body.unidade_quantidade || null,
       usuario_id: req.body.usuario_id || null,
     }

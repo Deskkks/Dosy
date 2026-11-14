@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import helmet from "helmet";
 import api from "./routes/index.js";
-import {applicationDefault, cert, initializeApp,} from 'firebase-admin';
+import firebaseInit from "./firebase.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,10 +17,7 @@ BigInt.prototype.toJSON = function () {
   return this.toString(); // Converte o BigInt para String automaticamente no JSON
 };
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT as string);
-serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-
-initializeApp({ credential: cert(serviceAccount) });
+firebaseInit(); // Inicializa o Firebase Admin SDK
 
 app.use(bodyParser.json());
 app.use(helmet());

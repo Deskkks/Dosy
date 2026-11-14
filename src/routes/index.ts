@@ -2,7 +2,7 @@ import express from "express";
 import meds from "./meds/index.js";
 import users from "./users/index.js";
 import history from "./history/index.js";
-import notification from "./notification.js";
+import notification from "../utils/notification.js";
 
 const router = express.Router();
 

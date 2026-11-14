@@ -9,8 +9,10 @@ const router = Express.Router();
 
 router.get("/:id", async (req, res) => {
 
-	const dataInicio = DateTime.now().startOf('day').toJSDate()
-	const dataFim = DateTime.now().endOf("day").toJSDate()
+	const tz = "America/Sao_Paulo"
+
+	const dataInicio = DateTime.now().setZone(tz).startOf('day').toJSDate()
+	const dataFim = DateTime.now().setZone(tz).endOf("day").toJSDate()
 
 	const meds = await prisma.medicamentos.findMany({
 		where: {
