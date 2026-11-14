@@ -118,7 +118,6 @@ router.post("/edit", async (req, res) => {
       data_inicio: req.body.data_inicio || undefined,
       observacoes: req.body.observacoes || undefined,
       unidade_dosagem: req.body.unidade_dosagem || undefined,
-      estoque: req.body.estoque || undefined,
       unidade_quantidade: req.body.unidade_quantidade || undefined,
       usuario_id: req.body.usuario_id || undefined,
     },
