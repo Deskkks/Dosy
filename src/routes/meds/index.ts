@@ -54,6 +54,7 @@ router.get("/cuid/:cuidadorId", async (req, res) => {
     const meds = await prisma.cuidadores.findUnique({
       where: { id: Number(req.params.cuidadorId) },
       select: {
+        nome: true,
         usuarios: {
           select: {
             nome: true,
