@@ -20,6 +20,24 @@ router.post("/", async (req, res) => {
 	})
 })
 
+router.get("/:id", async (req, res) => {
+	const history = await prisma.historico.findMany({
+		where: {
+			usuario_id: Number(req.params.id)
+		},
+		select: {
+			id: true,
+			medicamento_id: true,
+			tomado_em: true
+		},
+		orderBy: {
+			tomado_em: "desc"
+		}
+	}).then((history) => {
+		res.status(200).json(history);
+	});
+})
+
 router.use("/dashboard", dashboard);
 router.use("/doseDia", doseDia);
 

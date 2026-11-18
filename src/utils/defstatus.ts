@@ -17,7 +17,7 @@ export default function fdefStatus(med:any, dataInicio: Date, dataFim: Date){
 				return (diferenca >= 0 && diferenca <= med.frequencia*60*60*1000)
 			})
 			
-			horarioTomado = dataTomado ? dataTomado.data : null
+			horarioTomado = dataTomado ? dataTomado.tomado_em : null
 			
 			if(horarioTomado != null){
 				// Se houver registro de dose tomada, verifica se foi tomada no horário correto

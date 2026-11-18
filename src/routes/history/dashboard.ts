@@ -10,8 +10,8 @@ const tz = "America/Sao_Paulo"
 // Get Dashboard
 
 router.get("/:id", async (req, res) => {
-	const dataInicio = DateTime.now().setZone(tz).startOf("day").toJSDate()
-	const dataFim = DateTime.now().setZone(tz).endOf("day").toJSDate()
+	const dataInicio = DateTime.fromISO("2026-10-09T09:07:00.000Z").startOf("day").toJSDate()
+	const dataFim = DateTime.fromISO("2026-11-08T01:03:00.000Z").endOf("day").toJSDate()
 
 	const meds = await prisma.medicamentos.findMany({
 		where: {
@@ -74,8 +74,11 @@ router.get("/:id", async (req, res) => {
 	if(dosesEsp > 0){
 		adesao = Number(((dosesTom / dosesEsp) * 100).toFixed(1))
 	}
-	var inicioUltSem = DateTime.now().startOf("week").minus({day: 1}).toJSDate()
-	var fimUltSem = DateTime.now().endOf("week").minus({day: 1}).toJSDate()
+
+	// var inicioUltSem = DateTime.now().startOf("week").minus({day: 1, week: 1}).toJSDate()
+	// var fimUltSem = DateTime.now().endOf("week").minus({day: 1, week: 1}).toJSDate()
+	var fimUltSem = DateTime.fromISO("2026-11-08T01:03:00.000Z").endOf("week").minus({day: 1}).toJSDate()
+	var inicioUltSem = DateTime.fromJSDate(fimUltSem).startOf("week").minus({day: 1}).toJSDate()
 
 	var medsUltSem = await prisma.medicamentos.findMany({
 		where: {
@@ -145,7 +148,6 @@ router.get("/:id", async (req, res) => {
 			dosesTom += ad.dosesTom
 			diaSem = ad.diaSem.toLocaleString('pt-BR', { weekday: 'long' })
 		})
-		
 		if(dosesEsp > 0){
 			adesaoD.push({
 				adesao: ((dosesTom / dosesEsp) * 100).toFixed(1),
