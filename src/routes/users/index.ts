@@ -27,6 +27,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+
+router.get("/cuidador/:id", async (req, res) => {
+  const cuidadorId = Number(req.params.id);
+  try {
+    const cuidador = await prisma.cuidadores.findUnique({
+      where: { id: cuidadorId },
+      select: {
+        nome: true,
+        telefone: true,
+        parentesco: true,
+      }
+    });
+    if (!cuidador) {
+      return res.status(404).json({ message: "Cuidador não encontrado" });
+    }
+    res.status(200).json(cuidador);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar cuidador" });
+  }
+});
+
 // ---------- criar conta (cuidador) ----------
 
 router.post("/cuidador", async (req, res) => {

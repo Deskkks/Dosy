@@ -15,7 +15,15 @@ router.get("/:id", async (req, res) => {
 
 	const meds = await prisma.medicamentos.findMany({
 		where: {
-			usuario_id: Number(req.params.id)
+			usuario_id: Number(req.params.id),
+			historico:{
+				some: {
+					tomado_em: {
+						gte: dataInicio,
+						lte: dataFim,
+					}
+				}
+			}
 		},
 		select: {
 			nome: true,
@@ -26,12 +34,6 @@ router.get("/:id", async (req, res) => {
 			id: true,
 			horario_dose: true,
 			historico: {
-				where: {
-					tomado_em: {
-						gte: dataInicio,
-						lte: dataFim,
-					}
-				},
 				select: {
 					tomado_em: true
 				}
@@ -82,7 +84,15 @@ router.get("/:id", async (req, res) => {
 
 	var medsUltSem = await prisma.medicamentos.findMany({
 		where: {
-			usuario_id: Number(req.params.id)
+			usuario_id: Number(req.params.id),
+			historico:{
+				some: {
+					tomado_em: {
+						gte: inicioUltSem,
+						lte: fimUltSem,
+					}
+				}
+			}
 		},
 		select: {
 			nome: true,
@@ -93,12 +103,6 @@ router.get("/:id", async (req, res) => {
 			id: true,
 			horario_dose: true,
 			historico: {
-				where: {
-					tomado_em: {
-						gte: inicioUltSem,
-						lte: fimUltSem
-					}
-				},
 				select: {
 					tomado_em: true
 				}
