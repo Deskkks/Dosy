@@ -63,12 +63,11 @@ export async function enviarNotificacoes() {
         if (stat.status === "não tomado") {
 
           var [hours, minutes] = stat.horario.split(":").map(Number)
-          var doseTime = new Date()
-          doseTime.setHours(hours, minutes, 0, 0)
-          var currentTime = new Date()
-          var timeDifference = currentTime.getTime() - doseTime.getTime()
+          var currentTime = DateTime.now().setZone(tz)
+          var doseTime = currentTime.set({ hour: hours, minute: minutes, second: 0, millisecond: 0 })
+          var timeDifference = currentTime.toMillis() - doseTime.toMillis()
 
-          if (timeDifference >= 0 && timeDifference <= 5 * 60 * 1000) {
+          if (timeDifference >= 0 && timeDifference < 5 * 60 * 1000) {
             medsUser.cuidadores.map((cuid) => {
               if (cuid.token) {
                 envios.push(
